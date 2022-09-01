@@ -1,5 +1,6 @@
 # import the necessary packages
 from contextlib import contextmanager
+from difflib import context_diff
 from operator import contains
 import os, random, cv2, yaml, re
 from platform import architecture
@@ -73,7 +74,7 @@ def extractDatas(path):
                             print("Failed to print points on image, extracting on image " + filename + " canceled")
                             continue
                         #calculation of each spaces between cards
-                        extractDatasImage(blocs2D, undistorted_img, folder, filename)
+                        #extractDatasImage(blocs2D, undistorted_img, folder, filename)
                     else:
                         print("Unable to find more than 2 arUCo, image deleted")
                         os.remove(path + '/' + folder + "/" + filename)
@@ -200,7 +201,7 @@ def get_blocs3D():
         
     return blocs
 
-#for solveP3P at least 3 points in 3D and 2D must be given
+#for solveP3P at least 4 points in 3D and 2D must be given
 def get_blocs2D(i, blocs3D, aruCo2D, aruCo3D, mtx, dist_coeff, img):
     blocs3D = np.array(blocs3D, dtype=np.double)
 
@@ -209,12 +210,15 @@ def get_blocs2D(i, blocs3D, aruCo2D, aruCo3D, mtx, dist_coeff, img):
 
     # project 3D points to image plane
     imgpts, jac = cv2.projectPoints(blocs3D, rvecs, tvecs, mtx, dist_coeff)
+
+    #draw the poiints projected on the image and save the image in the AXIS folder
     my_drawpoints(img, imgpts, "./AXIS/drawnPointsimgPts" + str(i) + ".jpg")
 
+    #draw the arucos 3D projected points and save the image in the AXIS folder
     #imgptsC, jac = cv2.projectPoints(aruCo3D, rvecs, tvecs, mtx, dist_coeff)
     #my_drawpoints(img, imgptsC, "./AXIS/drawCorners" + str(i) + ".jpg")
 
-    #draw axis of image
+    #draw the axis on the image and save the image in the AXIS folder
     axis = np.float32([[300,0,0], [0,300,0], [0,0,300]]).reshape(-1,3)
     imgptsB, jac = cv2.projectPoints(axis, rvecs, tvecs, mtx, dist_coeff)
     my_drawaxis(0, img, aruCo2D, imgptsB, "./AXIS/drawnAxisCorners" + str(i) + ".jpg")
@@ -317,13 +321,14 @@ def loadAndPreprocess(folder, origin):
                 171,172,173,174,175,183,192,199,221,222,223,224,225,233,242,249,271,272,273,274,296,297,298,299,321,322,
                 323,324,346,347,348,349,371,372,373,374])
             elif origin == "left":
-                indexArray = np.array([4,10,16,23,28,48,49,54,60,66,74,79,85,90,98,104,110,116,123,128,129,148,149,153,
-                154,173,174,179,185,190,198,204,210,216,223,228,229,248,257,262,268,274,279,285,291,298,304,310,316,
-                323,328,329,348,353,354,373,379,385,391,398])
+                indexArray = np.array([5,11,17,25,29,30,50,55,61,67,75,80,86,91,99,105,111,117,125,129,130,150,154,155,
+                175,180,186,191,199,205,211,217,225,229,230,250,258,263,269,275,280,286,49,149,174,249,292,299,305,311,
+                317,324,329,330,349,350,354,355,374,375,380,386,392,399,405,411,417,425,430,436,442,450,454,455,474,475,
+                480,486,492,500,504,505,524,525])
             elif origin == "right":
-                indexArray = np.array([2,3,23,24,27,28,48,49,52,53,73,74,77,78,98,99,103,109,118,124,127,128,148,149,153,
-                159,168,174,178,184,193,199,203,209,218,224,227,228,248,249,252,253,273,274,278,284,293,299,303,309,318,
-                324,328,334,343,349,352,357,362,368,378,384,393,399])
+                indexArray = np.array([3,4,24,25,28,29,49,50,53,54,74,75,79,85,94,100,103,104,124,125,129,135,144,150,154,
+                160,169,175,179,185,194,200,204,210,219,225,229,235,244,250,254,260,269,275,278,282,287,294,304,310,319,325,
+                328,329,349,350,354,360,369,375,378,379,399,400,403,404,424,425,429,435,444,450,454,460,469,475])
             elif origin == "bottom right":
                 indexArray = np.array([0,3,23,24,25,28,48,49,50,53,73,74,75,78,98,99,100,103,123,124,125,128,148,149,150,
                 156,171,174,175,178,198,199,200,203,223,224,225,228,248,249])
@@ -332,9 +337,9 @@ def loadAndPreprocess(folder, origin):
                 173,174,180,181,182,198,204,210,216,223,225,229,248,249,254,260,266,273,279,285,291,298,301,304,323,324,
                 326,348,349,351,354,374,373,379,385,391,398,401,404,423,424,426,429,448,449,451,454,473,474,476,479,498,499])
             elif origin == "top left":
-                indexArray = np.array([8,17,24,33,42,49,51,73,74,75,76,83,92,106,115,120,123,125,133,142,148,150,151,158,
-                167,183,192,199,201,223,224,225,226,233,242,251,258,267,275,283,292,298,301,308,317,325,326,333,342,350,
-                351,373,374,375,383,392,399,400,401,423,424,425,426,448,449,450,459,468,474])
+                indexArray = np.array([8,17,23,33,42,49,51,52,73,74,76,77,83,91,106,115,120,123,133,142,148,151,152,158,
+                167,183,192,198,201,202,223,224,226,227,233,242,251,258,267,283,291,298,301,302,308,317,326,327,333,342,351,372,
+                374,375,383,392,399,401,402,423,424,426,421,448,449,458,467,473])
             elif origin == "top right":
                 indexArray = np.array([3,9,18,24,28,34,43,49,53,59,68,74,96,97,98,99,103,109,118,124,128,134,143,149,153,159,
                 168,174,178,184,193,199,208,209,210,223,228,234,243,249,253,259,268,274,296,297,298,299,303,309,318,324,346,
@@ -343,6 +348,9 @@ def loadAndPreprocess(folder, origin):
                 indexArray = np.array([3,9,16,21,27,33,40,46,52,58,65,71,78,83,89,94,102,108,115,121,127,133,140,146,150,158,
                 166,173,183,190,196,202,208,215,221,227,233,240,246,252,258,265,271,278,284,290,296,303,308,315,321,327,333,
                 340,346,352,358,365,371,378,384,391,396])
+            elif origin == "dark":
+                indexArray = np.array([19,20,21,22,44,45,46,47,53,63,71,72,77,78,88,96,97,102,107,115,122,127,128,132,140,147,
+                169,170,171,172,173,244,247,245,246])
             if i in indexArray:
                 memoryCards.append(img)
             else:
@@ -438,14 +446,8 @@ def detectAndPrint(folder, svc, i):
         x2, y2 = np.array(blocs2D[index+25]).squeeze()
         x3, y3 = np.array(blocs2D[index+50]).squeeze()
         x4, y4 = np.array(blocs2D[index+75]).squeeze()
-       
-       
 
-        cnt = np.array([[[x1, y1]],
-                [[x2, y2]],
-                [[x3, y3]],
-                [[x4, y4]]
-                ])
+        cnt = np.array([[[x1, y1]],[[x2, y2]],[[x3, y3]],[[x4, y4]]])
 
         # find the rotated rectangle enclosing the contour
         rect = cv2.minAreaRect(cnt)
@@ -453,19 +455,27 @@ def detectAndPrint(folder, svc, i):
         #cropped image
         extracted_image = crop_rect(imageGray, rect)
 
-        # Iinitalizing heatmap
+        # extracting cropped and predict the result with the model
+        cv2.imwrite('./test/' + folder + str(index) + "_test.jpg", extracted_image)
         extracted_image = cv2.resize(extracted_image,(16,245)).ravel().reshape(1, -1)
         decision = svc.predict(extracted_image)
-
+        
         if decision[0] == 1:
-            X1=min(x1,x2,x3,x4)
-            X2=max(x1,x2,x3,x4)
-            Y1=min(y1,y2,y3,y4)
-            Y2=max(y1,y2,y3,y4)
+            #print a rectangle on the result image
+            rect = cv2.minAreaRect(cnt)
+            box = cv2.boxPoints(rect)
+            box = np.int0(box)
+            undistorted_img = cv2.drawContours(undistorted_img,[box],0,(0,0,255),4)
             print("FOUND MEMORY CARD ON cropped number ", index)
-            image = cv2.rectangle(image, (int(X1), int(Y1)), (int(X2), int(Y2)), (255,0,0), 3)
-    cv2.imwrite('./Images Result/' + folder + "_result.jpg", image)
+    cv2.imwrite('./Images Result/' + folder + "_result.jpg", undistorted_img)
 
+#luanch the renameing of all images in the folder imgTest
 #renameImages("./imgTest")
-#extractDatas("./imgTest")
-ML()
+
+#launch the detection of aruco, the projection of the 3D points and the saving of the generating cropped images
+extractDatas("./imgTest")
+
+#launch the machine learning model and test on a random image found in each folder in imgTest
+#ML()
+
+
